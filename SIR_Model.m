@@ -14,11 +14,12 @@ V=0;
 D=0;
 totalPop=S+I+R+Q; %doesn't include dead
 
-days=365; %length of sim
+days=200; %length of sim
 
 %Getting sick
-alpha=.02; %rate of disease spread per interaction
-intPerDay=30; %daily number of interactions?
+alpha=.02; %transmission rate, decrease if mask wearing in effect
+baseIntPerDay=30; %daily number of interactions, decrease if social distancing in effect
+intPerDay=baseIntPerDay;
 
 %Recovering
 recovRate=0.07;
@@ -30,7 +31,7 @@ deathrate=0.00115;
 quarRate=0;
 %Vaccine
 efficacy=0.9;
-baseVaccRate=0.0;
+baseVaccRate=0.0005;
 vaccRollout=0;
 
 %% Susceptible
@@ -64,10 +65,22 @@ popArray=[S I R Q V D];
 for i=1:days
 
     %vacc clinic
-    if i == 10
+    if i == 50 || i==100
         vaccRate=0.25;
     else
         vaccRate=baseVaccRate;
+    end
+
+    %covid has ended
+    if I==0
+        vaccRate=0;
+    end
+
+    %superspreader events
+    if i==3 || i==10
+        intPerDay=150;
+    else
+        intPerDay=baseIntPerDay;
     end
 
     if rounding
@@ -108,12 +121,6 @@ for i=1:days
     Q=Q+dQ;
     V=V+dV;
     D=D+dD;
-
-    popArray=[popArray; [S I R Q V D]];
-end
-
-plot(popArray)
-legend('S','I','R','Q','V','D')
 
     popArray=[popArray; [S I R Q V D]];
 end
