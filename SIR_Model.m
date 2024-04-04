@@ -2,19 +2,25 @@
 %Description
 %
 
-rounding=false;
+rounding=true;
 
-S=1900;
-I=100;
+S=1800;
+I=200;
 R=0;
 Q=0;
 V=0;
 D=0;
 totalPop=S+I+R+Q; %doesn't include dead
 
-days=600; %length of sim
+days=365; %length of sim
 
-alpha=.2; %rate of disease spread?? (dS, dI)
+%Getting sick
+alpha=.02; %rate of disease spread per interaction
+intPerDay=30; %daily number of interactions?
+
+%Recovering
+recovRate=0.07;
+immLoss=0.01;
 
 %Death
 deathrate=0.00115;
@@ -22,8 +28,8 @@ deathrate=0.00115;
 quarRate=0;
 %Vaccine
 efficacy=0.9;
-vaccRate=0.001;
-vaccRollout=365;
+baseVaccRate=0.0;
+vaccRollout=0;
 
 %% Susceptible
 % From: Recovered
@@ -55,41 +61,43 @@ popArray=[S I R Q V D];
 
 for i=1:days
 
-    if i>vaccRollout
-        if ~rounding
-        % NOT rounding!
-        dS =-S*I*alpha/totalPop +R*.01 -vaccRate*S;
-        dI = S*I*alpha/totalPop -I*.1 -I*deathrate -I*quarRate +V*I*alpha*(1-efficacy)/totalPop;
-        dR = I*.1 -R*.01 +Q*.1 -vaccRate*R/2;
-        dQ = I*quarRate -Q*.1 -Q*deathrate;
-        dV = vaccRate*R/2 +vaccRate*S -V*I*alpha*(1-efficacy)/totalPop;
-        dD = deathrate*(I+Q);
-        else
-        % rounding!
-        dS =-round(S*I*alpha/totalPop) +ceil(R*.01)- round(vaccRate*S);
-        dI = round(S*I*alpha/totalPop) -ceil(I*.1) -round(I*deathrate) -round(I*quarRate) +round(V*I*alpha*(1-efficacy)/totalPop);
-        dR = ceil(I*.1) -ceil(R*.01) +ceil(Q*0.1) -round(vaccRate*R/2);
-        dQ = round(I*quarRate) -ceil(Q*.1) -round(Q*deathrate);
-        dV = round(vaccRate*R/2) +round(vaccRate*S) -round(V*I*alpha*(1-efficacy)/totalPop);
-        dD = round(deathrate*I) + round(deathrate*Q);
-        end
+    %vacc clinic
+    if i == 10
+        vaccRate=0.25;
     else
-        dV=0;
-        if ~rounding
-        % NOT rounding!
-        dS =-S*I*alpha/totalPop +R*.01;
-        dI = S*I*alpha/totalPop -I*.1 -I*deathrate -I*quarRate;
-        dR = I*.1 -R*.01 +Q*.1;
-        dQ = I*quarRate -Q*.1 -Q*deathrate;
-        dD = deathrate*(I+Q);
+        vaccRate=baseVaccRate;
+    end
+
+    if rounding
+        % Rounding
+        if i>vaccRollout
+            dS =-round(S*I*alpha*intPerDay/(totalPop-D)) +ceil(R*immLoss)- round(vaccRate*S);
+            dI = round(S*I*alpha*intPerDay/(totalPop-D)) -ceil(I*recovRate) -round(I*deathrate) -round(I*quarRate) +round(V*I*alpha*intPerDay*(1-efficacy)/totalPop);
+            dR = ceil(I*recovRate) -ceil(R*immLoss) +ceil(Q*recovRate) -round(vaccRate*R/2);
+            dV = round(vaccRate*R/2) +round(vaccRate*S) -round(V*I*alpha*intPerDay*(1-efficacy)/(totalPop-D));
         else
-        % rounding!
-        dS =-round(S*I*alpha/totalPop) +ceil(R*.01);
-        dI = round(S*I*alpha/totalPop) -ceil(I*.1) -round(I*deathrate) -round(I*quarRate);
-        dR = ceil(I*.1) -ceil(R*.01) +ceil(Q*0.1);
-        dQ = round(I*quarRate) -ceil(Q*.1) -round(Q*deathrate);
-        dD = round(deathrate*I) + round(deathrate*Q);
+            dS =-round(S*I*alpha*intPerDay/(totalPop-D)) +ceil(R*immLoss);
+            dI = round(S*I*alpha*intPerDay/(totalPop-D)) -ceil(I*recovRate) -round(I*deathrate) -round(I*quarRate);
+            dR = ceil(I*recovRate) -ceil(R*immLoss) +ceil(Q*recovRate);
+            dV=0;
         end
+        dQ = round(I*quarRate) -ceil(Q*recovRate) -round(Q*deathrate);
+        dD = round(deathrate*I) + round(deathrate*Q);
+    else
+        % NOT Rounding 
+        if i>vaccRollout
+            dS =-S*I*alpha*intPerDay/(totalPop-D) +R*immLoss -vaccRate*S;
+            dI = S*I*alpha*intPerDay/(totalPop-D) -I*recovRate -I*deathrate -I*quarRate +V*I*alpha*intPerDay*(1-efficacy)/(totalPop-D);
+            dR = I*recovRate -R*immLoss +Q*recovRate -vaccRate*R/2;
+            dV = vaccRate*R/2 +vaccRate*S -V*I*alpha*intPerDay*(1-efficacy)/totalPop;
+        else
+            dS =-S*I*alpha*intPerDay/(totalPop-D) +R*immLoss;
+            dI = S*I*alpha*intPerDay/(totalPop-D) -I*recovRate -I*deathrate -I*quarRate;
+            dR = I*recovRate -R*immLoss +Q*recovRate;
+            dV=0;
+        end
+        dQ = I*quarRate -Q*recovRate -Q*deathrate;
+        dD = deathrate*(I+Q);
     end
 
     S=S+dS;
@@ -98,6 +106,12 @@ for i=1:days
     Q=Q+dQ;
     V=V+dV;
     D=D+dD;
+
+    popArray=[popArray; [S I R Q V D]];
+end
+
+plot(popArray)
+legend('S','I','R','Q','V','D')
 
     popArray=[popArray; [S I R Q V D]];
 end
