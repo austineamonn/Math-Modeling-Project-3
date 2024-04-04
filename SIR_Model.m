@@ -2,6 +2,8 @@
 %Description
 %
 
+function popArray=SIR_Model()
+
 rounding=true;
 
 S=1800;
@@ -118,3 +120,5 @@ end
 
 plot(popArray)
 legend('S','I','R','Q','V','D')
+
+popArray=popArray';
