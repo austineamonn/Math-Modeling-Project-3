@@ -14,12 +14,11 @@ V=0;
 D=0;
 totalPop=S+I+R+Q; %doesn't include dead
 
-days=200; %length of sim
+days=300; %length of sim
 
 %Getting sick
-alpha=.02; %transmission rate, decrease if mask wearing in effect
-baseIntPerDay=30; %daily number of interactions, decrease if social distancing in effect
-intPerDay=baseIntPerDay;
+alpha=.02; %rate of disease spread per interaction
+BintPerDay=30; %daily number of interactions?
 
 %Recovering
 recovRate=0.07;
@@ -27,11 +26,14 @@ immLoss=0.01;
 
 %Death
 deathrate=0.00115;
+
 %Quarantine
-quarRate=0;
+baseQuarRate=0;
+testFreq=7; %test all every __ days
+
 %Vaccine
 efficacy=0.9;
-baseVaccRate=0.0005;
+baseVaccRate=0.00;
 vaccRollout=0;
 
 %% Susceptible
@@ -64,30 +66,46 @@ popArray=[S I R Q V D];
 
 for i=1:days
 
-    %vacc clinic
-    if i == 50 || i==100
-        vaccRate=0.25;
+    %vacc clinics
+    if (i == 80 || i == 81)
+        vaccRate= .3;
     else
         vaccRate=baseVaccRate;
     end
 
-    %covid has ended
-    if I==0
-        vaccRate=0;
+    % if lots of ppl around are sick, get vaccinated
+    %if I/(totalPop-D) > .02%???
+    %    vaccRate=0.20;
+    %else
+    %    vaccRate=baseVaccRate;
+    %end
+
+    %10/10 superspreader
+    %if i == 10
+    %    intPerDay=100;
+    %else
+        intPerDay=BintPerDay;
+    %end
+
+    % Testing "weekly"
+    if mod(i,testFreq)==testFreq-1
+        quarRate=.5;
+    else
+        quarRate=baseQuarRate;
     end
 
-    %superspreader events
-    if i==3 || i==10
-        intPerDay=150;
-    else
-        intPerDay=baseIntPerDay;
+    % Covid over break?!
+    if i == 78
+        brkCvd=.1*S;
+        S=S-brkCvd;
+        I=I+brkCvd;
     end
 
     if rounding
         % Rounding
         if i>vaccRollout
             dS =-round(S*I*alpha*intPerDay/(totalPop-D)) +ceil(R*immLoss)- round(vaccRate*S);
-            dI = round(S*I*alpha*intPerDay/(totalPop-D)) -ceil(I*recovRate) -round(I*deathrate) -round(I*quarRate) +round(V*I*alpha*intPerDay*(1-efficacy)/totalPop);
+            dI = round(S*I*alpha*intPerDay/(totalPop-D)) -ceil(I*recovRate) -round(I*deathrate) -round(I*quarRate) +round(V*I*alpha*intPerDay*(1-efficacy)/(totalPop-D));
             dR = ceil(I*recovRate) -ceil(R*immLoss) +ceil(Q*recovRate) -round(vaccRate*R/2);
             dV = round(vaccRate*R/2) +round(vaccRate*S) -round(V*I*alpha*intPerDay*(1-efficacy)/(totalPop-D));
         else
