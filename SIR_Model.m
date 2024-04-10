@@ -2,23 +2,27 @@
 %Description
 %
 
-function popArray=SIR_Model()
+function [popArray, D, propWithoutCovid]=SIR_Model(S,I,V,alpha,BintPerDay, baseQuarRate, testFreq, regTesting, baseVaccRate, vaccRollout, clinics, rounding)
 
-rounding=true;
+if nargin<1
+    rounding=true;
 
-S=1800;
-I=200;
+    S=1800;
+    I=200;
+    V=0;
+end
 R=0;
 Q=0;
-V=0;
 D=0;
 totalPop=S+I+R+Q; %doesn't include dead
 
 days=300; %length of sim
 
 %Getting sick
-alpha=.02; %rate of disease spread per interaction
-BintPerDay=30; %daily number of interactions?
+if nargin<1
+    alpha=.02; %rate of disease spread per interaction
+    BintPerDay=30; %daily number of interactions?
+end
 
 %Recovering
 recovRate=0.07;
@@ -28,13 +32,19 @@ immLoss=0.01;
 deathrate=0.00115;
 
 %Quarantine
-baseQuarRate=0;
-testFreq=7; %test all every __ days
+if nargin<1
+    regTesting=false;
+    baseQuarRate=0;
+    testFreq=7; %test all every __ days
+end
 
 %Vaccine
 efficacy=0.9;
-baseVaccRate=0.00;
-vaccRollout=0;
+if nargin<1
+    clinics=false;
+    baseVaccRate=0.00;
+    vaccRollout=0;
+end
 
 %% Susceptible
 % From: Recovered
@@ -64,11 +74,17 @@ vaccRollout=0;
 
 popArray=[S I R Q V D];
 
+covidless=0;
+
 for i=1:days
 
     %vacc clinics
-    if (i == 80 || i == 81)
-        vaccRate= .3;
+    if clinics
+        if (i == 2 || i == 168 || i== 80 || i==236)
+            vaccRate= .3;
+        else
+            vaccRate=baseVaccRate;
+        end
     else
         vaccRate=baseVaccRate;
     end
@@ -81,22 +97,38 @@ for i=1:days
     %end
 
     %10/10 superspreader
-    %if i == 10
+    %if i == 65
     %    intPerDay=100;
     %else
         intPerDay=BintPerDay;
     %end
 
     % Testing "weekly"
-    if mod(i,testFreq)==testFreq-1
-        quarRate=.5;
+    if regTesting
+        if mod(i,testFreq)==testFreq-1 || i==1 || i==2
+            quarRate=.5;
+        else
+            quarRate=baseQuarRate;
+        end
     else
         quarRate=baseQuarRate;
     end
 
     % Covid over break?!
-    if i == 78
-        brkCvd=.1*S;
+    if i == 78 || i == 234
+        if rounding
+            brkCvd=round(.05*S);
+        else
+            brkCvd=.05*S;
+        end
+            S=S-brkCvd;
+            I=I+brkCvd;
+    elseif i == 165
+        if rounding
+            brkCvd=round(.1*S);
+        else
+            brkCvd=.1*S;
+        end
         S=S-brkCvd;
         I=I+brkCvd;
     end
@@ -140,6 +172,11 @@ for i=1:days
     V=V+dV;
     D=D+dD;
 
+    if I+Q==0
+        covidless=covidless+1;
+    end
+
+    propWithoutCovid=covidless/days;
     popArray=[popArray; [S I R Q V D]];
 end
 
