@@ -16,8 +16,9 @@ For MAT 306.
 - rounding=True/False, whether rounding is used in the model or not
 - days=length of simulation
 
-SIR_sims()
-- Comment out different sections to produce different graphs simulating changes in variables as desired. Outputs Annual Deaths graph or Covid Free graph.
+SIR_sims(option,plottype)
+- option=different sections to be simulated changes in variables
+- plottype=Outputs Annual Deaths graph or Covid Free graph.
 
 [shandle,chandle] = stackedPlots(A)
 - From Prof. Blanchard
